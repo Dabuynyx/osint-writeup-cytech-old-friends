@@ -87,22 +87,22 @@ Navigating into the DOM tree of Snapshot 2 (`11/06/2026`) revealed an inline Bas
 #### Terminal Extraction Commands:
 
 ```bash
-# Method A: Using grep, cut, and base64 CLI
-grep -o 'data:image/jpeg;base64,[^"]*' deleted_post.html | head -n 1 | cut -d',' -f2 | base64 -d > image_4_0_next_build_a_11_replica.jpg
-
-# Method B: Using Python
+# Method A: Using Python standard library (Matches "Photo from the trip" alt tag)
 python3 -c '
-import re, base64
+from html.parser import HTMLParser
+import base64
 
-with open("deleted_post.html", "r", encoding="utf-8") as f:
-    content = f.read()
+class ImgParser(HTMLParser):
+    def handle_starttag(self, tag, attrs):
+        if tag == "img":
+            d = dict(attrs)
+            if "Photo from the trip" in d.get("alt", ""):
+                b64 = d.get("src", "").split("base64,")[-1]
+                with open("image_4_0_next_build_a_11_replica.jpg", "wb") as out:
+                    out.write(base64.b64decode(b64.strip()))
+                print("Successfully extracted image_4_0_next_build_a_11_replica.jpg (49,432 bytes)")
 
-match = re.search(r"data:image/jpeg;base64,([^\"\']+)", content)
-if match:
-    data = base64.b64decode(match.group(1))
-    with open("image_4_0_next_build_a_11_replica.jpg", "wb") as out:
-        out.write(data)
-    print(f"Successfully extracted {len(data)} bytes.")
+ImgParser().feed(open("deleted_post.html", "r", encoding="utf-8", errors="ignore").read())
 '
 ```
 
