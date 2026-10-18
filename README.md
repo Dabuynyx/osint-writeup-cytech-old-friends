@@ -14,6 +14,8 @@
 ![Partner](https://img.shields.io/badge/Partner-CYS--TECH-red?style=for-the-badge)
 ![Flag](https://img.shields.io/badge/Flag-Cryptix%7Bstonehenge%7D-red?style=for-the-badge)
 
+![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg?style=for-the-badge)
+
 </div>
 
 ---
@@ -203,3 +205,10 @@ Cr4t3K1ng (cr4t3k1ng.site)
 
 > [!IMPORTANT]
 > **Key Forensic Lesson:** Deleting content or images from the live version of a website does not remove previous snapshots captured by web archives, search engine caches, or third-party scraper scrapings. Furthermore, mobile devices automatically tag media files with exact GPS EXIF metadata unless specifically stripped by the application or privacy settings prior to upload.
+
+
+---
+
+## 📄 License
+
+This project is licensed under the [MIT License](LICENSE) — see the [LICENSE](LICENSE) file for details.
