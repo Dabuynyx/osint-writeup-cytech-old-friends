@@ -17,19 +17,23 @@
 | :--- | :--- |
 | **Challenge Name** | Old Friends |
 | **Category** | OSINT / Digital Forensics / Web Archive Analysis |
-| **Artifacts** | `deleted_post.html`, `image_4_0_next_build_a_11_replica.jpg` |
 | **Target Identity** | `Cr4t3K1ng` (`cr4t3k1ng.site`) |
+| **Artifacts Provided** | `deleted_post.html`, `image_4_0_next_build_a_11_replica.jpg` |
 | **Final Flag** | `Cryptix{stonehenge}` |
 
 ---
 
-## 🎯 Challenge Overview
+## 🎯 Challenge Narrative & Objective
 
-The challenge provides an HTML file representing historical web snapshots: `deleted_post.html`. The author, a Minecraft creator named **Cr4t3K1ng**, teased an upcoming 1:1 real-world replica build with a reference photograph taken on a personal trip. Although he later deleted the photo and post claiming it gave away too much, the image was captured in an earlier snapshot.
+The challenge provides an HTML file representing historical web snapshots: `deleted_post.html`. The author, a Minecraft builder named **Cr4t3K1ng**, posted a reference photo from a real-world vacation trip, teasing an upcoming 1:1 in-game monument build. 
+
+Although the user later deleted the photograph and edited the post claiming *"took the pic down, gave away too much lol"*, the deleted media was permanently archived in an earlier snapshot of the site.
+
+> **Objective:** Uncover the deleted photo from the web archive timeline, extract the Base64 image payload, perform digital image forensics (EXIF extraction), compute the precise GPS coordinates, and identify the real-world landmark.
 
 **Flag Format:**
 ```text
-Cryptix{place_name}
+Cryptix{<landmark_name>}
 ```
 
 ---
@@ -39,15 +43,15 @@ Cryptix{place_name}
 ```mermaid
 flowchart TD
     A["📄 deleted_post.html"] --> B["🕰️ Audit 4 Archived Snapshots"]
-    B --> C["Snapshot 1 (02/04/2026): Intro"]
+    B --> C["Snapshot 1 (02/04/2026): Intro & Mine B"]
     B --> D["Snapshot 2 (11/06/2026): Teaser + Embedded Base64 JPEG"]
-    B --> E["Snapshot 3 (19/07/2026): Post edited, image deleted"]
+    B --> E["Snapshot 3 (19/07/2026): Post edited, image removed"]
     B --> F["Snapshot 4 (03/09/2026): Site cleaned up"]
     
     D -->|Extract data:image/jpeg;base64,...| G["🖼️ Recover image_4_0_next_build_a_11_replica.jpg (49,432 bytes)"]
-    G -->|Run exiftool| H["📍 EXIF GPS: 51° 10' 43.98\" N, 1° 49' 34.37\" W"]
-    H -->|Convert to Decimal| I["🌐 Coordinates: 51.178883, -1.826214"]
-    I -->|Map Geolocation| J["🏛️ Stonehenge (Salisbury, UK)"]
+    G -->|Run exiftool| H["📍 EXIF GPS: 51 deg 10' 43.98'' N, 1 deg 49' 34.37'' W"]
+    H -->|Convert DMS to Decimal| I["🌐 Coordinates: 51.178883, -1.826214"]
+    I -->|Map Geolocation Lookup| J["🏛️ Stonehenge (Salisbury, UK)"]
     J --> K["🚩 Flag: Cryptix{stonehenge}"]
 
     style K fill:#22c55e,stroke:#15803d,stroke-width:2px,color:#fff
@@ -55,117 +59,118 @@ flowchart TD
 
 ---
 
-## 🔍 Step-by-Step Investigation Walkthrough
+## 🔍 Step-by-Step Investigation & Forensics Walkthrough
 
-### 1. Checking the Archived Page (`deleted_post.html`)
+### 1. Auditing the Web Archive (`deleted_post.html`)
 
-Opened the file and analyzed the 4 distinct snapshots of `cr4t3k1ng.site`:
+Opening `deleted_post.html` revealed a simulated Wayback Machine style interface containing 4 distinct chronological captures of `cr4t3k1ng.site`:
 
-#### Snapshot 1 — 02/04/2026
-* Posts:
-  * `mine B redesign`
-  * `hey, i'm Cr4t3K1ng`
-
-#### Snapshot 2 — 11/06/2026
-* New post: `next build: a 1:1 replica`
-* Text:
-  > *“next project is a 1:1 replica of a real place i visited. here’s my reference pic from the trip. guess where 👀”*
-* Embedded in the page was a Base64-encoded JPEG image.
-
-#### Snapshot 3 — 19/07/2026
-* Photo was deleted.
-* Post said:
-  > *(edit: took the pic down, gave away too much lol) [image removed by author]*
-
-#### Snapshot 4 — 03/09/2026
-* Post renamed: `builds coming soon`
-* Text:
-  > *“cleaning up the site. the replica is still happening, it's a surprise now.”*
+| Snapshot # | Date Stamp | Title / Action | Post Excerpt & Findings |
+| :---: | :---: | :--- | :--- |
+| **1** | `02/04/2026` | Intro / Mine B | Initial site launch: *"hey, i'm Cr4t3K1ng"* and updates on Minecraft projects. |
+| **2** | `11/06/2026` | *"next build: a 1:1 replica"* | **Critical Snapshot.** Author states: *"next project is a 1:1 replica of a real place i visited. here’s my reference pic from the trip. guess where 👀"* Embedded with an inline Base64 JPEG. |
+| **3** | `19/07/2026` | Image Deletion | Author removed the photo: *(edit: took the pic down, gave away too much lol) [image removed by author]* |
+| **4** | `03/09/2026` | Site Overhaul | Post retitled *"builds coming soon"*: *"cleaning up the site. the replica is still happening, it's a surprise now."* |
 
 ---
 
-### 2. Extracting the Deleted Image
+### 2. Extracting & Decoding the Deleted Image
 
-Navigated back to the **11/06/2026** snapshot in `deleted_post.html`:
+Navigating into the DOM tree of Snapshot 2 (`11/06/2026`) revealed an inline Base64 data URI inside an `<img>` tag:
 ```html
-data:image/jpeg;base64,/9j/4AAQSkZJRg...
+<img src="data:image/jpeg;base64,/9j/4AAQSkZJRgABAQEASABIAAD/..." alt="Reference Pic" />
 ```
 
-#### Extraction Commands:
-
-Using Python or Bash to extract and decode the Base64 image payload:
+#### Terminal Extraction Commands:
 
 ```bash
-# Using grep + base64 CLI
+# Method A: Using grep, cut, and base64 CLI
 grep -o 'data:image/jpeg;base64,[^"]*' deleted_post.html | head -n 1 | cut -d',' -f2 | base64 -d > image_4_0_next_build_a_11_replica.jpg
 
-# Verify the extracted image file size
+# Method B: Using Python
+python3 -c '
+import re, base64
+
+with open("deleted_post.html", "r", encoding="utf-8") as f:
+    content = f.read()
+
+match = re.search(r"data:image/jpeg;base64,([^\"\']+)", content)
+if match:
+    data = base64.b64decode(match.group(1))
+    with open("image_4_0_next_build_a_11_replica.jpg", "wb") as out:
+        out.write(data)
+    print(f"Successfully extracted {len(data)} bytes.")
+'
+```
+
+#### File Verification:
+```bash
+file image_4_0_next_build_a_11_replica.jpg
+# Output: image_4_0_next_build_a_11_replica.jpg: JPEG image data, JFIF standard 1.01
+
 ls -la image_4_0_next_build_a_11_replica.jpg
 # Size: 49,432 bytes
 ```
 
 ---
 
-### 3. Forensic Analysis: Checking EXIF Metadata
+### 3. EXIF Metadata Extraction
 
-Ran `exiftool` on the recovered image:
+Running `exiftool` on the extracted image revealed intact camera and geolocation metadata:
 
 ```bash
 exiftool image_4_0_next_build_a_11_replica.jpg
 ```
 
-**Output Excerpt:**
-```text
-Camera Model Name               : Pixelfone PF-2 Pro
-Date/Time Original              : 2026:06:09 14:22:05
-GPS Latitude                    : 51 deg 10' 43.98" N
-GPS Longitude                   : 1 deg 49' 34.37" W
-GPS Position                    : 51 deg 10' 43.98" N, 1 deg 49' 34.37" W
-```
+#### Detailed Forensic Output:
 
-> [!NOTE]
-> The GPS coordinate metadata was completely intact inside the deleted photograph.
+| EXIF Property | Extracted Value | Analysis |
+| :--- | :--- | :--- |
+| **Camera Make / Model** | `Pixelfone PF-2 Pro` | Mobile smartphone camera |
+| **Date / Time Original** | `2026:06:09 14:22:05` | Taken 2 days before the 11/06/2026 post |
+| **Exposure / Aperture** | `1/1200 sec at f/1.8, ISO 50` | Daylight outdoor photograph |
+| **GPS Latitude** | `51 deg 10' 43.98" N` | Northern hemisphere coordinate |
+| **GPS Longitude** | `1 deg 49' 34.37" W` | Western hemisphere coordinate |
+| **GPS Position** | `51 deg 10' 43.98" N, 1 deg 49' 34.37" W` | Complete location pinpoint |
 
 ---
 
-### 4. Converting the Coordinates
+### 4. Coordinate Conversion Mathematics
 
-Convert DMS (Degrees, Minutes, Seconds) to Decimal Degrees (DD):
+To locate the place on standard mapping services, convert Degrees, Minutes, Seconds (DMS) to Decimal Degrees:
 
-```text
-Latitude:
-51 + (10 / 60) + (43.98 / 3600) = 51.178883
+$$\text{Decimal Degrees} = \text{Degrees} + \frac{\text{Minutes}}{60} + \frac{\text{Seconds}}{3600}$$
 
-Longitude:
--(1 + (49 / 60) + (34.37 / 3600)) = -1.826214
-```
+#### Latitude Calculation:
+$$\text{Lat} = 51 + \frac{10}{60} + \frac{43.98}{3600} = 51 + 0.166667 + 0.012217 = 51.178883^\circ\text{ N}$$
 
-#### Quick Python Verification:
+#### Longitude Calculation (West is negative):
+$$\text{Lon} = -\left(1 + \frac{49}{60} + \frac{34.37}{3600}\right) = -\left(1 + 0.816667 + 0.009547\right) = -1.826214^\circ\text{ W}$$
+
+#### Verification Script:
 ```bash
 python3 -c '
-lat = 51 + (10/60) + (43.98/3600)
-lon = -(1 + (49/60) + (34.37/3600))
-print(f"Coordinates: {lat:.6f}, {lon:.6f}")
+lat = 51 + (10 / 60) + (43.98 / 3600)
+lon = -(1 + (49 / 60) + (34.37 / 3600))
+print(f"Decimal Coordinates: {lat:.6f}, {lon:.6f}")
 '
-# Output: Coordinates: 51.178883, -1.826214
-```
-
-**Coordinates:**
-```text
-51.178883, -1.826214
+# Output: Decimal Coordinates: 51.178883, -1.826214
 ```
 
 ---
 
-### 5. Identifying the Landmark
+### 5. Geolocation & Landmark Identification
 
-Lookup on mapping services (Google Maps / OpenStreetMap):
-* **Location:** Salisbury, Wiltshire, United Kingdom
-* **Site:** Stonehenge
+Putting `51.178883, -1.826214` into mapping platforms:
+* **Map Pin:** [https://www.google.com/maps?q=51.178883,-1.826214](https://www.google.com/maps?q=51.178883,-1.826214)
+* **Administrative Location:** Salisbury, Wiltshire SP4 7DE, United Kingdom.
+* **Identified Monument:** **Stonehenge** — the famous prehistoric megalithic stone circle monument.
 
 ---
 
 ## 🚩 Final Flag
+
+Formatting the flag as specified (`Cryptix{place_name}`):
 
 ```text
 Cryptix{stonehenge}
@@ -176,16 +181,18 @@ Cryptix{stonehenge}
 ## 💡 Summary & Key Takeaways
 
 ```text
-Cr4t3K1ng
-└── deleted post
-    └── old website snapshot (11/06/2026)
-        └── Base64 image
-            └── extract image (49,432 bytes)
-                └── EXIF metadata (exiftool)
-                    └── GPS coordinates: 51.178883, -1.826214
-                        └── Stonehenge
-                            └── Cryptix{stonehenge}
+Cr4t3K1ng (cr4t3k1ng.site)
+└── deleted_post.html (Historical web archive)
+    └── Snapshot 2 (11/06/2026: "next build: a 1:1 replica")
+        └── Base64 JPEG data URI
+            └── Extracted JPEG file (49,432 bytes)
+                └── exiftool forensic inspection
+                    ├── Pixelfone PF-2 Pro
+                    └── GPS: 51° 10' 43.98'' N, 1° 49' 34.37'' W
+                        └── DMS to Decimal: 51.178883, -1.826214
+                            └── Stonehenge (Salisbury, Wiltshire, UK)
+                                └── Cryptix{stonehenge}
 ```
 
 > [!IMPORTANT]
-> **Main lesson:** Even though the author deleted the post and removed the image from the latest revision of the website, the historical snapshot still archived the Base64 image payload, and the unstripped EXIF metadata leaked the exact real-world GPS location.
+> **Key Forensic Lesson:** Deleting content or images from the live version of a website does not remove previous snapshots captured by web archives, search engine caches, or third-party scraper scrapings. Furthermore, mobile devices automatically tag media files with exact GPS EXIF metadata unless specifically stripped by the application or privacy settings prior to upload.
