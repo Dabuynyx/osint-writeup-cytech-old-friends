@@ -7,7 +7,7 @@
 
 <div align="center">
 
-![Category](https://img.shields.io/badge/Category-OSINT%20%2F%20Digital%20Forensics-blue?style=for-the-badge&logo=googlemaps)
+![Category](https://img.shields.io/badge/Category-OSINT%20with%20DFIR-blue?style=for-the-badge&logo=googlemaps)
 ![Status](https://img.shields.io/badge/Status-Solved-success?style=for-the-badge&logo=checkmarx)
 ![CTF](https://img.shields.io/badge/CTF-Cryptix%20CTF-orange?style=for-the-badge)
 ![Organizer](https://img.shields.io/badge/Organizer-HTU%20Cyber%20Club-blue?style=for-the-badge)
@@ -25,7 +25,7 @@
 | Field | Detail |
 | :--- | :--- |
 | **Challenge Name** | Old Friends |
-| **Category** | OSINT / Digital Forensics / Web Archive Analysis |
+| **Category** | OSINT with DFIR (Web Archive & Image Forensics) |
 | **Target Identity** | `Cr4t3K1ng` (`cr4t3k1ng.site`) |
 | **Artifacts Provided** | `deleted_post.html`, `image_4_0_next_build_a_11_replica.jpg` |
 | **Final Flag** | `Cryptix{stonehenge}` |
